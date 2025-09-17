@@ -2,23 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3D Viewer / AR</title>
+  <title>Fake AR Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body { margin:0; font-family:sans-serif; text-align:center; background:#f0f0f0; }
-    h2 { margin-top:20px; }
-    button { margin:5px; padding:10px 15px; cursor:pointer; }
-    model-viewer { width:100%; height:80vh; background:#fff; margin-top:20px; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      overflow: hidden;
+      background: #000;
+    }
+    #menu {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 15px 20px;
+      border-radius: 10px;
+      z-index: 100;
+      color: #fff;
+      text-align: center;
+    }
+    #menu button {
+      margin: 5px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #videoContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    #cameraVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror */
+    }
+    model-viewer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60%;
+      height: 60%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      pointer-events: none; /* allow video interaction if needed */
+    }
   </style>
 </head>
 <body>
 
-<h2>Select a Model</h2>
-<button onclick="selectModel('Car.glb')">Car</button>
-<button onclick="selectModel('Bike.glb')">Bike</button>
-<button onclick="selectModel('House.glb')">House</button>
-<br><br>
-<button onclick="viewModel()">View Model</button>
+<div id="menu">
+  <p>Select a Model</p>
+  <button onclick="selectModel('Car.glb')">Car</button>
+  <button onclick="selectModel('Bike.glb')">Bike</button>
+  <button onclick="selectModel('House.glb')">House</button>
+  <br><br>
+  <button onclick="startFakeAR()">View AR</button>
+</div>
+
+<div id="videoContainer">
+  <video id="cameraVideo" autoplay playsinline></video>
+</div>
 
 <model-viewer 
     id="viewer" 
@@ -26,8 +77,6 @@
     alt="3D Model" 
     camera-controls 
     auto-rotate 
-    ar 
-    ar-modes="webxr scene-viewer quick-look" 
     shadow-intensity="1">
 </model-viewer>
 
@@ -39,13 +88,29 @@ function selectModel(file) {
   alert(file + ' selected ✅');
 }
 
-function viewModel() {
-  if (!selectedModel) { 
-    alert('Select a model first!'); 
-    return; 
+async function startFakeAR() {
+  if (!selectedModel) {
+    alert('Select a model first!');
+    return;
   }
+
+  // Set the model source
   const viewer = document.getElementById('viewer');
   viewer.src = selectedModel;
+
+  // Get video feed
+  const video = document.getElementById('cameraVideo');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = stream;
+    video.play();
+  } catch (err) {
+    alert('Camera access denied or not available.');
+    console.error(err);
+  }
+
+  // Hide menu after starting
+  document.getElementById('menu').style.display = 'none';
 }
 </script>
 
