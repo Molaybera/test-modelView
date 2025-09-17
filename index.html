@@ -1,121 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>AR.js Model Selector</title>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+    <meta charset="UTF-8" />
+    <title>Simple AR Viewer</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-      body, html { margin: 0; overflow: hidden; }
+      body { margin:0; padding:0; }
       #menu {
-        position: absolute;
-        top: 10px; left: 10px;
+        position:absolute;
+        top:10px; left:10px;
+        z-index: 10;
         background: rgba(0,0,0,0.7);
         padding: 10px;
         border-radius: 10px;
         color: white;
         font-family: sans-serif;
-        z-index: 100; /* make sure buttons are on top */
       }
-      button { margin: 5px; padding: 8px 12px; cursor: pointer; }
-      canvas { display: block; z-index: 1; }
+      button { margin:5px; padding:8px 12px; cursor:pointer; }
     </style>
   </head>
   <body>
-    <!-- Menu -->
     <div id="menu">
       <p>Select Model:</p>
-      <button onclick="selectModel('car.glb')">Car</button>
-      <button onclick="selectModel('bike.glb')">Bike</button>
-      <button onclick="selectModel('house.glb')">House</button>
+      <button onclick="selectModel('Car.glb')">Car</button>
+      <button onclick="selectModel('Bike.glb')">Bike</button>
       <br>
       <button onclick="viewAR()">View AR</button>
     </div>
 
+    <model-viewer 
+      id="viewer"
+      src=""
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      auto-rotate
+      style="width:100vw; height:100vh; z-index:1;">
+    </model-viewer>
+
     <script>
-      let scene, camera, renderer, clock, markerRoot, model, loader;
-      let selectedModelFile = null;
-      let isARActive = false;
-
-      init();
-      animate();
-
-      function init() {
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.outputEncoding = THREE.sRGBEncoding;
-        document.body.appendChild(renderer.domElement);
-
-        scene = new THREE.Scene();
-        camera = new THREE.Camera();
-        scene.add(camera);
-
-        let arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
-        arToolkitSource.init(() => onResize());
-        window.addEventListener('resize', () => onResize());
-
-        function onResize() {
-          arToolkitSource.onResize();
-          arToolkitSource.copySizeTo(renderer.domElement);
-          if (arToolkitContext.arController !== null) {
-            arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
-          }
-        }
-
-        let arToolkitContext = new THREEx.ArToolkitContext({
-          cameraParametersUrl: "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat",
-          detectionMode: "mono"
-        });
-        arToolkitContext.init(() => {
-          camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-        });
-
-        markerRoot = new THREE.Group();
-        scene.add(markerRoot);
-        new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-          type: 'pattern',
-          patternUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro',
-        });
-
-        clock = new THREE.Clock();
-        update = () => {
-          if (arToolkitSource.ready) {
-            arToolkitContext.update(arToolkitSource.domElement);
-          }
-        };
-
-        let light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-        light.position.set(0, 1, 0);
-        scene.add(light);
-
-        loader = new THREE.GLTFLoader();
-      }
+      const viewer = document.getElementById('viewer');
+      let selectedModel = '';
 
       function selectModel(file) {
-        selectedModelFile = file;
-        alert(file + " selected ✅");
+        selectedModel = file;
+        alert(file + ' selected ✅');
       }
 
       function viewAR() {
-        if (!selectedModelFile) {
-          alert("Please select a model first!");
+        if(!selectedModel) {
+          alert('Select a model first!');
           return;
         }
-        // Remove old model if exists
-        if (model) markerRoot.remove(model);
-
-        loader.load(selectedModelFile, function (gltf) {
-          model = gltf.scene;
-          model.scale.set(0.5, 0.5, 0.5);
-          markerRoot.add(model);
-          isARActive = true;
-        });
-      }
-
-      function animate() {
-        requestAnimationFrame(animate);
-        if (typeof update === "function") update();
-        renderer.render(scene, camera);
+        viewer.src = selectedModel;
+        // Activate AR (on supported phones)
+        viewer.activateAR();
       }
     </script>
   </body>
