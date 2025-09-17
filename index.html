@@ -36,51 +36,7 @@
 let scene, camera, renderer, clock, markerRoot, model, loader;
 let selectedModelFile = null;
 let arToolkitSource, arToolkitContext;
-
-function initAR() {
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  scene = new THREE.Scene();
-  camera = new THREE.Camera();
-  scene.add(camera);
-
-  arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
-  arToolkitSource.init(() => onResize());
-  window.addEventListener('resize', () => onResize());
-
-  function onResize() {
-    arToolkitSource.onResize();
-    arToolkitSource.copySizeTo(renderer.domElement);
-    if (arToolkitContext.arController !== null) {
-      arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
-    }
-  }
-
-  arToolkitContext = new THREEx.ArToolkitContext({
-    cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat',
-    detectionMode: 'mono'
-  });
-
-  arToolkitContext.init(() => camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix()));
-
-  markerRoot = new THREE.Group();
-  scene.add(markerRoot);
-
-  new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-    type: 'pattern',
-    patternUrl: 'pattern-BroTech-logo.patt', // <-- replace with your .patt file
-  });
-
-  clock = new THREE.Clock();
-
-  let light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-  light.position.set(0, 1, 0);
-  scene.add(light);
-
-  loader = new THREE.GLTFLoader();
-}
+let arStarted = false;
 
 function selectModel(file) {
   selectedModelFile = file;
@@ -92,17 +48,62 @@ function startAR() {
     alert('Please select a model first!');
     return;
   }
-  // Initialize AR
-  if (!renderer) initAR();
+  if (arStarted) return; // prevent multiple initializations
+  arStarted = true;
+
+  // Initialize renderer and scene
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.Camera();
+  scene.add(camera);
+
+  // AR Source (camera)
+  arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+  arToolkitSource.init(() => onResize());
+  window.addEventListener('resize', () => onResize());
+
+  function onResize() {
+    arToolkitSource.onResize();
+    arToolkitSource.copySizeTo(renderer.domElement);
+    if (arToolkitContext && arToolkitContext.arController !== null) {
+      arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+    }
+  }
+
+  // AR Context
+  arToolkitContext = new THREEx.ArToolkitContext({
+    cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat',
+    detectionMode: 'mono'
+  });
+  arToolkitContext.init(() => camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix()));
+
+  // Marker root
+  markerRoot = new THREE.Group();
+  scene.add(markerRoot);
+  new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+    type: 'pattern',
+    patternUrl: 'pattern-BroTech-logo.patt', // <-- replace with your .patt file
+  });
+
+  // Light
+  let light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+  light.position.set(0, 1, 0);
+  scene.add(light);
+
+  // GLTF loader
+  loader = new THREE.GLTFLoader();
 
   // Load model
-  if (model) markerRoot.remove(model); // remove old model
   loader.load(selectedModelFile, (gltf) => {
     model = gltf.scene;
     model.scale.set(0.5,0.5,0.5);
     markerRoot.add(model);
   });
 
+  clock = new THREE.Clock();
   animate();
 }
 
