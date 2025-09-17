@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAR Buttons Demo</title>
+  <!-- Google Model Viewer -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background: #111827;
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
+    }
+    main {
+      padding: 2rem;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      color: white;
+      background: #2563eb;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn:hover {
+      background: #1d4ed8;
+    }
+    #viewBtn {
+      margin-top: 2rem;
+      background: #10b981;
+    }
+    #viewBtn:hover {
+      background: #059669;
+    }
+    /* Hidden model-viewer (needed for AR launch) */
+    model-viewer {
+      width: 0;
+      height: 0;
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+  <header>🚗 WebAR Model Selector</header>
+  <main>
+    <h2>Select a Model</h2>
+
+    <!-- Buttons for model selection -->
+    <button class="btn" onclick="setModel('models/Car.glb')">Car</button>
+    <button class="btn" onclick="setModel('models/Chair.glb')">Chair</button>
+    <button class="btn" onclick="setModel('models/Table.glb')">Table</button>
+
+    <!-- View button -->
+    <div>
+      <button class="btn" id="viewBtn">📱 View in AR</button>
+    </div>
+
+    <!-- Hidden model-viewer (required for AR trigger) -->
+    <model-viewer id="viewer"
+      src=""
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      auto-rotate
+      shadow-intensity="1">
+    </model-viewer>
+  </main>
+
+  <script>
+    const viewer = document.getElementById("viewer");
+    const viewBtn = document.getElementById("viewBtn");
+    let selectedModel = "";
+
+    function setModel(modelPath) {
+      selectedModel = modelPath;
+      alert("Selected: " + modelPath.split("/").pop());
+    }
+
+    viewBtn.addEventListener("click", () => {
+      if (!selectedModel) {
+        alert("Please select a model first!");
+        return;
+      }
+      viewer.setAttribute("src", selectedModel);
+      viewer.activateAR();
+    });
+  </script>
+</body>
+</html>
