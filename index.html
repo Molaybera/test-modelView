@@ -1,91 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Fake AR Viewer</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      overflow: hidden;
-      background: #000;
-      height: 100%;
-      width: 100%;
-    }
+<meta charset="UTF-8">
+<title>Fake AR Viewer - Movable Model</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    overflow: hidden;
+    background: #000;
+    height: 100%;
+    width: 100%;
+  }
 
-    /* Windowed menu */
-    #menu {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      padding: 20px 30px;
-      border-radius: 15px;
-      z-index: 100;
-      color: #fff;
-      text-align: center;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-      max-width: 95%;
-    }
+  /* Windowed menu */
+  #menu {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    padding: 20px 30px;
+    border-radius: 15px;
+    z-index: 100;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    max-width: 95%;
+  }
 
-    #menu p {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
+  #menu p {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
 
-    #menu button {
-      margin: 10px 0;
-      padding: 18px 0;
-      cursor: pointer;
-      font-size: 20px;
-      border: none;
-      border-radius: 12px;
-      width: 100%; /* full width */
-      background: #1e90ff;
-      color: #fff;
-      transition: 0.3s;
-    }
+  #menu button {
+    margin: 10px 0;
+    padding: 18px 0;
+    cursor: pointer;
+    font-size: 20px;
+    border: none;
+    border-radius: 12px;
+    width: 100%; /* full width */
+    background: #1e90ff;
+    color: #fff;
+    transition: 0.3s;
+  }
 
-    #menu button:hover {
-      background: #0d6efd;
-    }
+  #menu button:hover {
+    background: #0d6efd;
+  }
 
-    /* Camera video full screen */
-    #videoContainer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      z-index: 1;
-    }
+  /* Camera video full screen */
+  #videoContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+  }
 
-    #cameraVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(1); /* real camera orientation */
-    }
+  #cameraVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(1);
+  }
 
-    /* 3D Model overlay full screen */
-    model-viewer {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 90%;   /* larger width */
-      height: 90%;  /* larger height */
-      max-width: 100%;
-      max-height: 100%;
-      transform: translate(-50%, -50%) scaleX(1);
-      z-index: 50;
-      pointer-events: auto; /* allow rotate/zoom */
-      display: none; /* hidden until camera ready */
-    }
-  </style>
+  /* 3D Model overlay full screen */
+  #modelContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 50;
+    touch-action: none; /* important for drag on mobile */
+  }
+
+  model-viewer {
+    width: 100%;
+    height: 100%;
+    transform: translate(0, 0) scaleX(1);
+    pointer-events: auto;
+    auto-rotate: false;
+    camera-controls: true;
+  }
+</style>
 </head>
 <body>
 
@@ -102,14 +107,16 @@
   <video id="cameraVideo" autoplay playsinline></video>
 </div>
 
-<model-viewer 
-    id="viewer" 
-    src="" 
-    alt="3D Model" 
-    camera-controls
-    auto-rotate="false"
-    shadow-intensity="1">
-</model-viewer>
+<div id="modelContainer">
+  <model-viewer 
+      id="viewer" 
+      src="" 
+      alt="3D Model" 
+      camera-controls
+      auto-rotate="false"
+      shadow-intensity="1">
+  </model-viewer>
+</div>
 
 <script>
 let selectedModel = '';
@@ -126,7 +133,7 @@ async function startFakeAR() {
   }
 
   const viewer = document.getElementById('viewer');
-  viewer.style.display = 'none'; // hide until camera ready
+  viewer.style.display = 'none';
 
   const video = document.getElementById('cameraVideo');
   try {
@@ -142,8 +149,48 @@ async function startFakeAR() {
     console.error(err);
   }
 
-  // Hide menu
   document.getElementById('menu').style.display = 'none';
+}
+
+// Make model draggable
+const modelContainer = document.getElementById('modelContainer');
+let pos = { x: 0, y: 0 };
+let isDragging = false;
+let start = { x: 0, y: 0 };
+
+function getTouch(e) { 
+  return e.touches ? e.touches[0] : e; 
+}
+
+modelContainer.addEventListener('mousedown', startDrag);
+modelContainer.addEventListener('touchstart', startDrag);
+
+function startDrag(e) {
+  isDragging = true;
+  const touch = getTouch(e);
+  start.x = touch.clientX - pos.x;
+  start.y = touch.clientY - pos.y;
+}
+
+modelContainer.addEventListener('mousemove', drag);
+modelContainer.addEventListener('touchmove', drag);
+
+function drag(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const touch = getTouch(e);
+  pos.x = touch.clientX - start.x;
+  pos.y = touch.clientY - start.y;
+  const viewer = document.getElementById('viewer');
+  viewer.style.transform = `translate(${pos.x}px, ${pos.y}px) scaleX(1)`;
+}
+
+modelContainer.addEventListener('mouseup', endDrag);
+modelContainer.addEventListener('mouseleave', endDrag);
+modelContainer.addEventListener('touchend', endDrag);
+
+function endDrag() {
+  isDragging = false;
 }
 </script>
 
