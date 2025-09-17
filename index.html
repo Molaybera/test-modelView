@@ -12,24 +12,44 @@
       overflow: hidden;
       background: #000;
     }
+
+    /* Windowed menu */
     #menu {
       position: absolute;
-      top: 10px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      padding: 15px 20px;
-      border-radius: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 20px 30px;
+      border-radius: 15px;
       z-index: 100;
       color: #fff;
       text-align: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
     }
+
+    #menu p {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
     #menu button {
-      margin: 5px;
-      padding: 10px 15px;
+      margin: 10px;
+      padding: 15px 25px;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #1e90ff;
+      color: #fff;
+      transition: 0.3s;
     }
+
+    #menu button:hover {
+      background: #0d6efd;
+    }
+
+    /* Camera video full screen */
     #videoContainer {
       position: absolute;
       top: 0;
@@ -37,23 +57,27 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
+      z-index: 1;
     }
+
     #cameraVideo {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(1);
+      transform: scaleX(1); /* real-world camera, not mirrored */
     }
 
+    /* 3D Model overlay */
     model-viewer {
       position: absolute;
       top: 50%;
       left: 50%;
       width: 60%;
       height: 60%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%) scaleX(1);
       z-index: 50;
-      pointer-events: none; /* allow video interaction if needed */
+      pointer-events: auto; /* allow rotate/zoom */
+      display: none; /* hidden until camera ready */
     }
   </style>
 </head>
@@ -76,8 +100,8 @@
     id="viewer" 
     src="" 
     alt="3D Model" 
-    camera-controls 
-    auto-rotate 
+    camera-controls
+    auto-rotate="false"
     shadow-intensity="1">
 </model-viewer>
 
@@ -96,7 +120,7 @@ async function startFakeAR() {
   }
 
   const viewer = document.getElementById('viewer');
-  viewer.style.display = 'none'; // hide until camera is ready
+  viewer.style.display = 'none'; // hide until camera ready
 
   const video = document.getElementById('cameraVideo');
   try {
@@ -104,17 +128,17 @@ async function startFakeAR() {
     video.srcObject = stream;
     await video.play();
 
-    // Camera is ready → show the 3D model
-    viewer.style.display = 'block';
+    // Camera ready → show 3D model
     viewer.src = selectedModel;
+    viewer.style.display = 'block';
   } catch (err) {
     alert('Camera access denied or not available.');
     console.error(err);
   }
 
+  // Hide menu
   document.getElementById('menu').style.display = 'none';
 }
-
 </script>
 
 </body>
