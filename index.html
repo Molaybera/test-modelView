@@ -1,102 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebAR Buttons Demo</title>
-  <!-- Google Model Viewer -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f3f4f6;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    header {
-      background: #111827;
-      color: white;
-      padding: 1rem;
-      font-size: 1.5rem;
-    }
-    main {
-      padding: 2rem;
-    }
-    .btn {
-      display: inline-block;
-      margin: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      color: white;
-      background: #2563eb;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .btn:hover {
-      background: #1d4ed8;
-    }
-    #viewBtn {
-      margin-top: 2rem;
-      background: #10b981;
-    }
-    #viewBtn:hover {
-      background: #059669;
-    }
-    /* Hidden model-viewer (needed for AR launch) */
-    model-viewer {
-      width: 0;
-      height: 0;
-      visibility: hidden;
-    }
-  </style>
-</head>
-<body>
-  <header>🚗 WebAR Model Selector</header>
-  <main>
-    <h2>Select a Model</h2>
-
-    <!-- Buttons for model selection -->
-    <button class="btn" onclick="setModel('models/Car.glb')">Car</button>
-    <button class="btn" onclick="setModel('models/Chair.glb')">Chair</button>
-    <button class="btn" onclick="setModel('models/Table.glb')">Table</button>
-
-    <!-- View button -->
-    <div>
-      <button class="btn" id="viewBtn">📱 View in AR</button>
+<html>
+  <head>
+    <title>AR.js Model Selector</title>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+      body, html { margin: 0; overflow: hidden; }
+      #menu {
+        position: absolute;
+        top: 10px; left: 10px;
+        background: rgba(0,0,0,0.6);
+        padding: 10px;
+        border-radius: 10px;
+        color: white;
+        font-family: sans-serif;
+      }
+      button { margin: 5px; padding: 8px 12px; }
+    </style>
+  </head>
+  <body>
+    <!-- Menu -->
+    <div id="menu">
+      <p>Select Model:</p>
+      <button onclick="selectModel('car.glb')">Car</button>
+      <button onclick="selectModel('bike.glb')">Bike</button>
+      <button onclick="selectModel('house.glb')">House</button>
     </div>
 
-    <!-- Hidden model-viewer (required for AR trigger) -->
-    <model-viewer id="viewer"
-      src=""
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls
-      auto-rotate
-      shadow-intensity="1">
-    </model-viewer>
-  </main>
+    <script>
+      let scene, camera, renderer, clock, markerRoot, model, loader;
+      let selectedModel = null;
 
-  <script>
-    const viewer = document.getElementById("viewer");
-    const viewBtn = document.getElementById("viewBtn");
-    let selectedModel = "";
+      init();
+      animate();
 
-    function setModel(modelPath) {
-      selectedModel = modelPath;
-      alert("Selected: " + modelPath.split("/").pop());
-    }
+      function init() {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.body.appendChild(renderer.domElement);
 
-    viewBtn.addEventListener("click", () => {
-      if (!selectedModel) {
-        alert("Please select a model first!");
-        return;
+        scene = new THREE.Scene();
+        camera = new THREE.Camera();
+        scene.add(camera);
+
+        let arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+        arToolkitSource.init(() => onResize());
+        window.addEventListener('resize', () => onResize());
+
+        function onResize() {
+          arToolkitSource.onResize();
+          arToolkitSource.copySizeTo(renderer.domElement);
+          if (arToolkitContext.arController !== null) {
+            arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+          }
+        }
+
+        let arToolkitContext = new THREEx.ArToolkitContext({
+          cameraParametersUrl: "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat",
+          detectionMode: "mono"
+        });
+        arToolkitContext.init(() => {
+          camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+        });
+
+        markerRoot = new THREE.Group();
+        scene.add(markerRoot);
+        let markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+          type: 'pattern',
+          patternUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro',
+        });
+
+        clock = new THREE.Clock();
+        update = () => {
+          if (arToolkitSource.ready) {
+            arToolkitContext.update(arToolkitSource.domElement);
+          }
+        };
+
+        let light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+        light.position.set(0, 1, 0);
+        scene.add(light);
+
+        loader = new THREE.GLTFLoader();
       }
-      viewer.setAttribute("src", selectedModel);
-      viewer.activateAR();
-    });
-  </script>
-</body>
+
+      function selectModel(file) {
+        if (model) markerRoot.remove(model); // remove old one
+        loader.load(file, function (gltf) {
+          model = gltf.scene;
+          model.scale.set(0.5, 0.5, 0.5);
+          markerRoot.add(model);
+        });
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (typeof update === "function") update();
+        renderer.render(scene, camera);
+      }
+    </script>
+  </body>
 </html>
