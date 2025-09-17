@@ -15,24 +15,27 @@
         border-radius: 10px;
         color: white;
         font-family: sans-serif;
-        z-index: 10; /* ensures buttons are on top */
+        z-index: 100; /* make sure buttons are on top */
       }
       button { margin: 5px; padding: 8px 12px; cursor: pointer; }
       canvas { display: block; z-index: 1; }
     </style>
   </head>
   <body>
-    <!-- Menu Buttons -->
+    <!-- Menu -->
     <div id="menu">
       <p>Select Model:</p>
       <button onclick="selectModel('car.glb')">Car</button>
       <button onclick="selectModel('bike.glb')">Bike</button>
       <button onclick="selectModel('house.glb')">House</button>
+      <br>
+      <button onclick="viewAR()">View AR</button>
     </div>
 
     <script>
       let scene, camera, renderer, clock, markerRoot, model, loader;
-      let selectedModel = null;
+      let selectedModelFile = null;
+      let isARActive = false;
 
       init();
       animate();
@@ -89,11 +92,23 @@
       }
 
       function selectModel(file) {
+        selectedModelFile = file;
+        alert(file + " selected ✅");
+      }
+
+      function viewAR() {
+        if (!selectedModelFile) {
+          alert("Please select a model first!");
+          return;
+        }
+        // Remove old model if exists
         if (model) markerRoot.remove(model);
-        loader.load(file, function (gltf) {
+
+        loader.load(selectedModelFile, function (gltf) {
           model = gltf.scene;
           model.scale.set(0.5, 0.5, 0.5);
           markerRoot.add(model);
+          isARActive = true;
         });
       }
 
