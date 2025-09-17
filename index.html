@@ -11,6 +11,8 @@
       font-family: sans-serif;
       overflow: hidden;
       background: #000;
+      height: 100%;
+      width: 100%;
     }
 
     /* Windowed menu */
@@ -26,6 +28,7 @@
       color: #fff;
       text-align: center;
       box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      max-width: 95%;
     }
 
     #menu p {
@@ -34,12 +37,13 @@
     }
 
     #menu button {
-      margin: 10px;
-      padding: 15px 25px;
+      margin: 10px 0;
+      padding: 18px 0;
       cursor: pointer;
-      font-size: 18px;
+      font-size: 20px;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
+      width: 100%; /* full width */
       background: #1e90ff;
       color: #fff;
       transition: 0.3s;
@@ -64,16 +68,18 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(1); /* real-world camera, not mirrored */
+      transform: scaleX(1); /* real camera orientation */
     }
 
-    /* 3D Model overlay */
+    /* 3D Model overlay full screen */
     model-viewer {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 60%;
-      height: 60%;
+      width: 90%;   /* larger width */
+      height: 90%;  /* larger height */
+      max-width: 100%;
+      max-height: 100%;
       transform: translate(-50%, -50%) scaleX(1);
       z-index: 50;
       pointer-events: auto; /* allow rotate/zoom */
@@ -88,7 +94,7 @@
   <button onclick="selectModel('Car.glb')">Car</button>
   <button onclick="selectModel('Bike.glb')">Bike</button>
   <button onclick="selectModel('House.glb')">House</button>
-  <br><br>
+  <br>
   <button onclick="startFakeAR()">View AR</button>
 </div>
 
