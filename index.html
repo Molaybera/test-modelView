@@ -28,28 +28,25 @@
   <button onclick="selectModel('Car.glb')">Car</button>
   <button onclick="selectModel('Bike.glb')">Bike</button>
   <button onclick="selectModel('House.glb')">House</button>
+  <br>
+  <button onclick="startAR('Car.glb')">View AR</button>
 </div>
 
 <script>
 let scene, camera, renderer, clock, markerRoot, model, loader;
 let selectedModelFile = null;
+let arToolkitSource, arToolkitContext;
 
-init();
-animate();
-
-function init() {
-  // Renderer
+function initAR() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Scene & Camera
   scene = new THREE.Scene();
   camera = new THREE.Camera();
   scene.add(camera);
 
-  // AR Source
-  let arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+  arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
   arToolkitSource.init(() => onResize());
   window.addEventListener('resize', () => onResize());
 
@@ -61,30 +58,23 @@ function init() {
     }
   }
 
-  // AR Context
-  let arToolkitContext = new THREEx.ArToolkitContext({
+  arToolkitContext = new THREEx.ArToolkitContext({
     cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat',
     detectionMode: 'mono'
   });
 
-  arToolkitContext.init(() => {
-    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-  });
+  arToolkitContext.init(() => camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix()));
 
-  // Marker
   markerRoot = new THREE.Group();
   scene.add(markerRoot);
+
   new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
     type: 'pattern',
-    patternUrl: 'pattern-BroTech-logo.patt',
+    patternUrl: 'pattern-BroTech-logo.patt', // <-- replace with your .patt file
   });
 
   clock = new THREE.Clock();
-  update = () => {
-    if (arToolkitSource.ready) arToolkitContext.update(arToolkitSource.domElement);
-  };
 
-  // Light
   let light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
   light.position.set(0, 1, 0);
   scene.add(light);
@@ -95,18 +85,30 @@ function init() {
 function selectModel(file) {
   selectedModelFile = file;
   alert(file + ' selected ✅');
+}
 
+function startAR() {
+  if (!selectedModelFile) {
+    alert('Please select a model first!');
+    return;
+  }
+  // Initialize AR
+  if (!renderer) initAR();
+
+  // Load model
   if (model) markerRoot.remove(model); // remove old model
-  loader.load(file, (gltf) => {
+  loader.load(selectedModelFile, (gltf) => {
     model = gltf.scene;
-    model.scale.set(0.5, 0.5, 0.5); // adjust size
+    model.scale.set(0.5,0.5,0.5);
     markerRoot.add(model);
   });
+
+  animate();
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  if (typeof update === 'function') update();
+  if (arToolkitSource && arToolkitSource.ready) arToolkitContext.update(arToolkitSource.domElement);
   renderer.render(scene, camera);
 }
 </script>
