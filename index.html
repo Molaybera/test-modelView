@@ -28,7 +28,7 @@
             display: none !important;
         }
 
-        /* --- MENU STYLES (UNCHANGED) --- */
+        /* --- MENU STYLES --- */
         #menu-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
@@ -67,9 +67,11 @@
         
         #image-overlay-container {
             display: flex; justify-content: center; align-items: center;
-            cursor: grab; /* NEW: Indicates it's interactive */
-            touch-action: none; /* NEW: Prevents page scroll on touch */
-            overflow: hidden; /* NEW: Hides parts of the image that go off-screen */
+            cursor: grab;
+            touch-action: none;
+            overflow: hidden;
+            /* UPDATED: Adds perspective for a 3D effect on rotation */
+            perspective: 1000px;
         }
         #overlay-image {
             border-radius: 8px;
@@ -77,10 +79,12 @@
             user-select: none;
             max-width: 90%;
             max-height: 90%;
-            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.5)); 
+            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.5));
+            /* UPDATED: Helps with 3D transformations */
+            transform-style: preserve-3d;
         }
 
-        /* --- UI CONTROLS (UNCHANGED) --- */
+        /* --- UI CONTROLS --- */
         #back-button, #ar-overlay-text {
             position: absolute; z-index: 101; background: var(--dark-bg);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
@@ -95,6 +99,17 @@
             padding: 10px 20px; border-radius: 20px; font-size: 14px;
             text-align: center; pointer-events: none;
         }
+        
+        /* --- NEW: CSS Animation for Image Rotation --- */
+        .auto-rotate-image {
+            animation: subtle-rotate 15s linear infinite;
+        }
+
+        @keyframes subtle-rotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
     </style>
 </head>
 <body>
@@ -102,12 +117,12 @@
     <div id="menu-container">
         <div id="menu">
             <h2>Select a 3D Model</h2>
-            <button class="asset-btn" data-asset-type="model" data-asset-src="Car.glb">Car by Quaternius [CC-BY] via Poly Pizza</button>
-            <button class="asset-btn" data-asset-type="model" data-asset-src="pizza.glb">Pepperoni pizza by Poly by Google [CC-BY] via Poly Pizza</button>
+            <button class="asset-btn" data-asset-type="model" data-asset-src="Car.glb">Car</button>
+            <button class="asset-btn" data-asset-type="model" data-asset-src="pizza.glb">Pepperoni Pizza</button>
             <hr>
             <h2>Or Select an Image</h2>
-            <button class="asset-btn" data-asset-type="image" data-asset-src="BroTech-logo.png">BroTech-logo</button>
-            <button class="asset-btn" data-asset-type="image" data-asset-src="burger.png">burger</button>
+            <button class="asset-btn" data-asset-type="image" data-asset-src="BroTech-logo.png">BroTech Logo</button>
+            <button class="asset-btn" data-asset-type="image" data-asset-src="burger.png">Burger</button>
             <button id="start-btn">View in AR</button>
         </div>
     </div>
@@ -120,7 +135,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- Get all the elements (mostly unchanged) ---
+        // --- Get all the elements ---
         const menuContainer = document.getElementById('menu-container');
         const videoContainer = document.getElementById('videoContainer');
         const viewer = document.getElementById('viewer');
@@ -133,7 +148,7 @@
         const assetBtns = document.querySelectorAll('.asset-btn');
         let selectedAsset = '', assetType = '', stream = null;
 
-        // --- Selection & AR Start Logic (unchanged) ---
+        // --- Selection & AR Start Logic ---
         assetBtns.forEach(button => {
             button.addEventListener('click', () => {
                 assetBtns.forEach(btn => btn.classList.remove('selected'));
@@ -156,9 +171,11 @@
                     viewer.src = selectedAsset;
                     viewer.classList.remove('hidden');
                 } else if (assetType === 'image') {
-                    resetImageTransform(); // NEW: Reset position before showing
+                    resetImageTransform();
                     overlayImage.src = selectedAsset;
                     imageOverlayContainer.classList.remove('hidden');
+                    // UPDATED: Start the animation when image is shown
+                    overlayImage.classList.add('auto-rotate-image'); 
                 }
             } catch (err) { alert('Could not access the camera. Please check permissions.'); console.error("Camera Error:", err); }
         });
@@ -173,9 +190,7 @@
             imageOverlayContainer.classList.add('hidden'); overlayImage.src = '';
         });
 
-        // =================================================================
-        // === NEW: Interactive Image Transformation Logic ===
-        // =================================================================
+        // --- Interactive Image Transformation Logic ---
         let scale = 1, translateX = 0, translateY = 0;
         let isDragging = false, startX, startY;
         let initialPinchDistance = null;
@@ -186,18 +201,21 @@
 
         const resetImageTransform = () => {
             scale = 1; translateX = 0; translateY = 0;
+            // Ensure animation class is removed when resetting
+            overlayImage.classList.remove('auto-rotate-image');
             applyTransform();
         };
 
         // --- MOUSE EVENTS ---
         imageOverlayContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
+            // UPDATED: Stop the animation on interaction
+            overlayImage.classList.remove('auto-rotate-image');
             isDragging = true;
             startX = e.clientX - translateX;
             startY = e.clientY - translateY;
             imageOverlayContainer.style.cursor = 'grabbing';
         });
-
         imageOverlayContainer.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             e.preventDefault();
@@ -205,19 +223,18 @@
             translateY = e.clientY - startY;
             applyTransform();
         });
-
         imageOverlayContainer.addEventListener('mouseup', () => {
             isDragging = false;
             imageOverlayContainer.style.cursor = 'grab';
         });
-
         imageOverlayContainer.addEventListener('mouseleave', () => {
             isDragging = false;
             imageOverlayContainer.style.cursor = 'grab';
         });
-
         imageOverlayContainer.addEventListener('wheel', (e) => {
             e.preventDefault();
+            // UPDATED: Stop the animation on interaction
+            overlayImage.classList.remove('auto-rotate-image');
             const scaleAmount = e.deltaY > 0 ? -0.1 : 0.1;
             scale = Math.min(Math.max(0.5, scale + scaleAmount), 5); // Clamp scale
             applyTransform();
@@ -225,6 +242,8 @@
 
         // --- TOUCH EVENTS ---
         imageOverlayContainer.addEventListener('touchstart', (e) => {
+            // UPDATED: Stop the animation on interaction
+            overlayImage.classList.remove('auto-rotate-image');
             if (e.touches.length === 1) { // Pan
                 isDragging = true;
                 startX = e.touches[0].clientX - translateX;
@@ -236,7 +255,6 @@
                 initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
             }
         });
-
         imageOverlayContainer.addEventListener('touchmove', (e) => {
             if (isDragging && e.touches.length === 1) { // Pan
                 translateX = e.touches[0].clientX - startX;
@@ -252,7 +270,6 @@
                 initialPinchDistance = currentPinchDistance; // Update for continuous zoom
             }
         });
-
         imageOverlayContainer.addEventListener('touchend', () => {
             isDragging = false;
             initialPinchDistance = null;
@@ -262,5 +279,3 @@
 
 </body>
 </html>
-
-
