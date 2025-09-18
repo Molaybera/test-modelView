@@ -1,11 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Fake AR Viewer - Movable Model</title>
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Viewer</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --dark-bg: rgba(20, 20, 25, 0.9);
+            --light-text: #f0f0f0;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            background: #111;
+            height: 100%;
+            width: 100%;
+            color: var(--light-text);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- MENU STYLES (UNCHANGED) --- */
+        #menu-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; background: #111;
+        }
+        #menu {
+            background: var(--dark-bg); padding: 25px 30px; border-radius: 16px;
+            text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            width: 90%; max-width: 350px; border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #menu h2 { margin-top: 0; margin-bottom: 15px; font-size: 22px; }
+        #menu hr { border: none; height: 1px; background-color: rgba(255, 255, 255, 0.2); margin: 20px 0; }
+        .asset-btn, #start-btn {
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            cursor: pointer; font-size: 18px; border: 2px solid transparent;
+            border-radius: 12px; background-color: rgba(255, 255, 255, 0.1);
+            color: var(--light-text); transition: all 0.2s ease-in-out;
+        }
+        .asset-btn:hover { background-color: rgba(255, 255, 255, 0.2); }
+        .asset-btn.selected { background-color: var(--primary-color); border-color: var(--primary-color); font-weight: bold; }
+        #start-btn { background-color: var(--primary-color); font-weight: bold; border: none; margin-top: 20px; }
+        #start-btn:hover { background-color: var(--primary-hover); }
+
+        /* --- AR VIEW STYLES --- */
+        #videoContainer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; z-index: 1;
+        }
+        #cameraVideo { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 3D Model & 2D Image Overlay */
+        model-viewer, #image-overlay-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50;
+        }
+        model-viewer { --progress-bar-color: var(--primary-color); }
+        
+        #image-overlay-container {
+            display: flex; justify-content: center; align-items: center;
+            cursor: grab; /* NEW: Indicates it's interactive */
+            touch-action: none; /* NEW: Prevents page scroll on touch */
+            overflow: hidden; /* NEW: Hides parts of the image that go off-screen */
+        }
+        #overlay-image {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 8px;
+            transition: transform 0.1s ease-out; /* NEW: Makes movement smoother */
+            user-select: none; /* NEW: Prevents highlighting image on drag */
+            max-width: 90%; /* Start image slightly smaller */
+            max-height: 90%;
+        }
+
+        /* --- UI CONTROLS (UNCHANGED) --- */
+        #back-button, #ar-overlay-text {
+            position: absolute; z-index: 101; background: var(--dark-bg);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        #back-button {
+            top: 20px; left: 20px; color: var(--light-text); border: none;
+            width: 44px; height: 44px; border-radius: 50%; font-size: 24px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        #ar-overlay-text {
+            bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; border-radius: 20px; font-size: 14px;
+            text-align: center; pointer-events: none;
+        }
+    </style>
+</head>
 <body>
-<h1>chal be jaa </h1>
+
+    <div id="menu-container">
+        <div id="menu">
+            <h2>Select a 3D Model</h2>
+            <button class="asset-btn" data-asset-type="model" data-asset-src="Car.glb">Car by Quaternius [CC-BY] via Poly Pizza</button>
+            <button class="asset-btn" data-asset-type="model" data-asset-src="pizza.glb">Pepperoni pizza by Poly by Google [CC-BY] via Poly Pizza</button>
+            <hr>
+            <h2>Or Select an Image</h2>
+            <button class="asset-btn" data-asset-type="image" data-asset-src="BroTech-logo.png">BroTech-logo</button>
+            <button class="asset-btn" data-asset-type="image" data-asset-src="my-logo.png">LOGO</button>
+            <button id="start-btn">View in AR</button>
+        </div>
+    </div>
+    
+    <div id="videoContainer" class="hidden"><video id="cameraVideo" autoplay playsinline></video></div>
+    <model-viewer id="viewer" src="" alt="3D Model" camera-controls auto-rotate="false" shadow-intensity="1" class="hidden"></model-viewer>
+    <div id="image-overlay-container" class="hidden"><img id="overlay-image" src="" alt="Overlay Image"></div>
+    <button id="back-button" class="hidden">&larr;</button>
+    <div id="ar-overlay-text" class="hidden"><p>Move your phone to explore</p></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Get all the elements (mostly unchanged) ---
+        const menuContainer = document.getElementById('menu-container');
+        const videoContainer = document.getElementById('videoContainer');
+        const viewer = document.getElementById('viewer');
+        const imageOverlayContainer = document.getElementById('image-overlay-container');
+        const overlayImage = document.getElementById('overlay-image');
+        const video = document.getElementById('cameraVideo');
+        const backButton = document.getElementById('back-button');
+        const arOverlayText = document.getElementById('ar-overlay-text');
+        const startBtn = document.getElementById('start-btn');
+        const assetBtns = document.querySelectorAll('.asset-btn');
+        let selectedAsset = '', assetType = '', stream = null;
+
+        // --- Selection & AR Start Logic (unchanged) ---
+        assetBtns.forEach(button => {
+            button.addEventListener('click', () => {
+                assetBtns.forEach(btn => btn.classList.remove('selected'));
+                button.classList.add('selected');
+                selectedAsset = button.getAttribute('data-asset-src');
+                assetType = button.getAttribute('data-asset-type');
+            });
+        });
+        startBtn.addEventListener('click', async () => {
+            if (!selectedAsset) { alert('Please select a model or an image first!'); return; }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                await video.play();
+                menuContainer.classList.add('hidden');
+                videoContainer.classList.remove('hidden');
+                backButton.classList.remove('hidden');
+                arOverlayText.classList.remove('hidden');
+                if (assetType === 'model') {
+                    viewer.src = selectedAsset;
+                    viewer.classList.remove('hidden');
+                } else if (assetType === 'image') {
+                    resetImageTransform(); // NEW: Reset position before showing
+                    overlayImage.src = selectedAsset;
+                    imageOverlayContainer.classList.remove('hidden');
+                }
+            } catch (err) { alert('Could not access the camera. Please check permissions.'); console.error("Camera Error:", err); }
+        });
+        backButton.addEventListener('click', () => {
+            if (stream) { stream.getTracks().forEach(track => track.stop()); }
+            video.srcObject = null;
+            menuContainer.classList.remove('hidden');
+            videoContainer.classList.add('hidden');
+            backButton.classList.add('hidden');
+            arOverlayText.classList.add('hidden');
+            viewer.classList.add('hidden'); viewer.src = '';
+            imageOverlayContainer.classList.add('hidden'); overlayImage.src = '';
+        });
+
+        // =================================================================
+        // === NEW: Interactive Image Transformation Logic ===
+        // =================================================================
+        let scale = 1, translateX = 0, translateY = 0;
+        let isDragging = false, startX, startY;
+        let initialPinchDistance = null;
+
+        const applyTransform = () => {
+            overlayImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        };
+
+        const resetImageTransform = () => {
+            scale = 1; translateX = 0; translateY = 0;
+            applyTransform();
+        };
+
+        // --- MOUSE EVENTS ---
+        imageOverlayContainer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            imageOverlayContainer.style.cursor = 'grabbing';
+        });
+
+        imageOverlayContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            applyTransform();
+        });
+
+        imageOverlayContainer.addEventListener('mouseup', () => {
+            isDragging = false;
+            imageOverlayContainer.style.cursor = 'grab';
+        });
+
+        imageOverlayContainer.addEventListener('mouseleave', () => {
+            isDragging = false;
+            imageOverlayContainer.style.cursor = 'grab';
+        });
+
+        imageOverlayContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = e.deltaY > 0 ? -0.1 : 0.1;
+            scale = Math.min(Math.max(0.5, scale + scaleAmount), 5); // Clamp scale
+            applyTransform();
+        });
+
+        // --- TOUCH EVENTS ---
+        imageOverlayContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) { // Pan
+                isDragging = true;
+                startX = e.touches[0].clientX - translateX;
+                startY = e.touches[0].clientY - translateY;
+            } else if (e.touches.length === 2) { // Zoom
+                isDragging = false; // Stop panning
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+
+        imageOverlayContainer.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) { // Pan
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                applyTransform();
+            } else if (e.touches.length === 2 && initialPinchDistance) { // Zoom
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const currentPinchDistance = Math.sqrt(dx * dx + dy * dy);
+                const scaleFactor = currentPinchDistance / initialPinchDistance;
+                scale = Math.min(Math.max(0.5, scale * scaleFactor), 5); // Clamp scale
+                applyTransform();
+                initialPinchDistance = currentPinchDistance; // Update for continuous zoom
+            }
+        });
+
+        imageOverlayContainer.addEventListener('touchend', () => {
+            isDragging = false;
+            initialPinchDistance = null;
+        });
+    });
+</script>
+
 </body>
 </html>
-
