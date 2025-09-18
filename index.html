@@ -72,11 +72,12 @@
             overflow: hidden; /* NEW: Hides parts of the image that go off-screen */
         }
         #overlay-image {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 8px;
-            transition: transform 0.1s ease-out; /* NEW: Makes movement smoother */
-            user-select: none; /* NEW: Prevents highlighting image on drag */
-            max-width: 90%; /* Start image slightly smaller */
+            border-radius: 8px;
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            max-width: 90%;
             max-height: 90%;
+            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.5)); 
         }
 
         /* --- UI CONTROLS (UNCHANGED) --- */
@@ -261,4 +262,5 @@
 
 </body>
 </html>
+
 
