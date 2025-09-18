@@ -14,29 +14,38 @@
         }
 
         body, html {
-            margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden; background: #111; height: 100%; width: 100%; color: var(--light-text);
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            background: #111;
+            height: 100%;
+            width: 100%;
+            color: var(--light-text);
         }
 
-        .hidden { display: none !important; }
+        .hidden {
+            display: none !important;
+        }
 
         /* --- MENU STYLES --- */
         #menu-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center; z-index: 100; background: #111;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; background: #111;
         }
         #menu {
-            background: var(--dark-bg); padding: 25px 30px; border-radius: 16px; text-align: center;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4); width: 90%; max-width: 350px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--dark-bg); padding: 25px 30px; border-radius: 16px;
+            text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            width: 90%; max-width: 400px; border: 1px solid rgba(255, 255, 255, 0.1);
         }
         #menu h2 { margin-top: 0; margin-bottom: 15px; font-size: 22px; }
         #menu hr { border: none; height: 1px; background-color: rgba(255, 255, 255, 0.2); margin: 20px 0; }
         .asset-btn, #start-btn {
-            display: block; width: 100%; padding: 15px; margin: 10px 0; cursor: pointer;
-            font-size: 18px; border: 2px solid transparent; border-radius: 12px;
-            background-color: rgba(255, 255, 255, 0.1); color: var(--light-text);
-            transition: all 0.2s ease-in-out;
+            display: block; width: 100%; padding: 20px; margin: 12px 0;
+            cursor: pointer; font-size: 20px; border: 2px solid transparent;
+            border-radius: 12px; background-color: rgba(255, 255, 255, 0.1);
+            color: var(--light-text); transition: all 0.2s ease-in-out;
         }
         .asset-btn:hover { background-color: rgba(255, 255, 255, 0.2); }
         .asset-btn.selected { background-color: var(--primary-color); border-color: var(--primary-color); font-weight: bold; }
@@ -45,24 +54,30 @@
 
         /* --- AR VIEW STYLES --- */
         #videoContainer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 1;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; z-index: 1;
         }
-        #cameraVideo { width: 100%; height: 100%; object-fit: cover; }
-        model-viewer {
+        #cameraVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(1); }
+
+        /* 3D Model & 2D Image Overlay */
+        model-viewer, #image-overlay-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50;
-            --progress-bar-color: var(--primary-color);
         }
+        model-viewer { --progress-bar-color: var(--primary-color); }
         
         #image-overlay-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50;
             display: flex; justify-content: center; align-items: center;
-            cursor: grab; touch-action: none; overflow: hidden;
-            /* UPDATED: Perspective is for the child's 3D animation */
-            perspective: 1500px;
+            touch-action: none;
+            overflow: hidden;
+            perspective: 1000px;
         }
         #overlay-image {
+            border-radius: 8px;
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            max-width: 90%;
+            max-height: 90%;
             filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.5));
-            user-select: none; max-width: 75%; max-height: 75%;
             transform-style: preserve-3d;
         }
 
@@ -72,23 +87,25 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         #back-button {
-            top: 20px; left: 20px; color: var(--light-text); border: none; width: 44px; height: 44px;
-            border-radius: 50%; font-size: 24px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            top: 20px; left: 20px; color: var(--light-text); border: none;
+            width: 50px; height: 50px; border-radius: 50%; font-size: 28px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         #ar-overlay-text {
-            bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px;
-            border-radius: 20px; font-size: 14px; text-align: center; pointer-events: none;
+            bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; border-radius: 20px; font-size: 16px;
+            text-align: center; pointer-events: none;
         }
         
-        /* --- NEW: Wobble Animation --- */
-        .idle-animation {
-            animation: wobble-rotate 5s ease-in-out infinite alternate;
+        /* --- NEW: CSS Animation for Image Wobble --- */
+        @keyframes subtle-wobble {
+            0% { transform: rotateY(-15deg) scale(var(--scale, 1)) translate(var(--x, 0), var(--y, 0)); }
+            50% { transform: rotateY(15deg) scale(var(--scale, 1)) translate(var(--x, 0), var(--y, 0)); }
+            100% { transform: rotateY(-15deg) scale(var(--scale, 1)) translate(var(--x, 0), var(--y, 0)); }
         }
 
-        @keyframes wobble-rotate {
-            from { transform: rotateY(-20deg); }
-            to { transform: rotateY(20deg); }
+        .auto-wobble {
+            animation: subtle-wobble 4s ease-in-out infinite;
         }
     </style>
 </head>
@@ -106,6 +123,7 @@
             <button id="start-btn">View in AR</button>
         </div>
     </div>
+    
     <div id="videoContainer" class="hidden"><video id="cameraVideo" autoplay playsinline></video></div>
     <model-viewer id="viewer" src="" alt="3D Model" camera-controls auto-rotate="false" shadow-intensity="1" class="hidden"></model-viewer>
     <div id="image-overlay-container" class="hidden"><img id="overlay-image" src="" alt="Overlay Image"></div>
@@ -126,7 +144,7 @@
         const assetBtns = document.querySelectorAll('.asset-btn');
         let selectedAsset = '', assetType = '', stream = null;
 
-        // --- Selection & AR Start Logic ---
+        // --- Selection ---
         assetBtns.forEach(button => {
             button.addEventListener('click', () => {
                 assetBtns.forEach(btn => btn.classList.remove('selected'));
@@ -136,8 +154,9 @@
             });
         });
 
+        // --- Start AR ---
         startBtn.addEventListener('click', async () => {
-            if (!selectedAsset) { alert('Please select an asset first!'); return; }
+            if (!selectedAsset) { alert('Please select a model or an image first!'); return; }
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = stream;
@@ -150,14 +169,15 @@
                     viewer.src = selectedAsset;
                     viewer.classList.remove('hidden');
                 } else if (assetType === 'image') {
-                    resetImageTransform(); // Reset position and animation
+                    resetImageTransform();
                     overlayImage.src = selectedAsset;
                     imageOverlayContainer.classList.remove('hidden');
-                    startIdleTimer(); // Start the idle animation
+                    overlayImage.classList.add('auto-wobble'); 
                 }
-            } catch (err) { alert('Could not access camera.'); console.error(err); }
+            } catch (err) { alert('Could not access the camera. Please check permissions.'); console.error("Camera Error:", err); }
         });
 
+        // --- Back Button ---
         backButton.addEventListener('click', () => {
             if (stream) { stream.getTracks().forEach(track => track.stop()); }
             video.srcObject = null;
@@ -167,45 +187,30 @@
             arOverlayText.classList.add('hidden');
             viewer.classList.add('hidden'); viewer.src = '';
             imageOverlayContainer.classList.add('hidden'); overlayImage.src = '';
-            stopIdleTimer(); // Stop any running timers
         });
 
-        // =================================================================
-        // === UPDATED: Interactive Image Transformation Logic ===
-        // =================================================================
-        let scale = 1, translateX = 0, translateY = 0, rotation = 0;
-        let isDragging = false, startX, startY;
-        let initialPinch = { distance: 0, angle: 0 };
-        let idleTimer = null;
+        // --- Transform State ---
+        let scale = 1, translateX = 0, translateY = 0;
+        let isDragging = false, startX, startY, initialPinchDistance = null;
 
-        // --- IDLE ANIMATION TIMER ---
-        const startIdleTimer = () => {
-            stopIdleTimer(); // Clear any existing timer
-            idleTimer = setTimeout(() => {
-                overlayImage.classList.add('idle-animation');
-            }, 2000); // 2-second delay
-        };
-        const stopIdleTimer = () => clearTimeout(idleTimer);
-        const interruptAnimation = () => {
-            stopIdleTimer();
-            overlayImage.classList.remove('idle-animation');
-        };
-
-        // --- APPLY & RESET TRANSFORMS ---
         const applyTransform = () => {
-            // Interactive transforms are now on the image itself
-            overlayImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
+            overlayImage.style.setProperty('--x', translateX + "px");
+            overlayImage.style.setProperty('--y', translateY + "px");
+            overlayImage.style.setProperty('--scale', scale);
         };
+
         const resetImageTransform = () => {
-            scale = 1; translateX = 0; translateY = 0; rotation = 0;
-            interruptAnimation();
+            scale = 1; translateX = 0; translateY = 0;
+            overlayImage.classList.remove('auto-wobble');
             applyTransform();
         };
 
+        function stopWobble() { overlayImage.classList.remove('auto-wobble'); }
+        function startWobble() { overlayImage.classList.add('auto-wobble'); }
+
         // --- MOUSE EVENTS ---
         imageOverlayContainer.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            interruptAnimation();
+            stopWobble();
             isDragging = true;
             startX = e.clientX - translateX;
             startY = e.clientY - translateY;
@@ -220,64 +225,27 @@
         imageOverlayContainer.addEventListener('mouseup', () => {
             isDragging = false;
             imageOverlayContainer.style.cursor = 'grab';
-            startIdleTimer(); // Restart idle timer on release
+            startWobble();
         });
         imageOverlayContainer.addEventListener('mouseleave', () => {
-            if (isDragging) {
-                isDragging = false;
-                imageOverlayContainer.style.cursor = 'grab';
-                startIdleTimer();
-            }
-        });
-        imageOverlayContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            interruptAnimation();
-            const scaleAmount = e.deltaY > 0 ? -0.1 : 0.1;
-            scale = Math.min(Math.max(0.5, scale + scaleAmount), 5);
-            applyTransform();
-            startIdleTimer(); // Restart idle timer after scroll
+            isDragging = false;
+            imageOverlayContainer.style.cursor = 'grab';
+            startWobble();
         });
 
-        // --- TOUCH EVENTS (WITH ROTATION & ZOOM) ---
-        imageOverlayContainer.addEventListener('touchstart', (e) => {
-            interruptAnimation();
-            if (e.touches.length === 1) {
-                isDragging = true;
-                startX = e.touches[0].clientX - translateX;
-                startY = e.touches[0].clientY - translateY;
-            } else if (e.touches.length === 2) {
-                isDragging = false;
-                const t1 = e.touches[0], t2 = e.touches[1];
-                const dx = t1.clientX - t2.clientX;
-                const dy = t1.clientY - t2.clientY;
-                initialPinch.distance = Math.sqrt(dx * dx + dy * dy);
-                initialPinch.angle = Math.atan2(dy, dx) * (180 / Math.PI);
-            }
-        });
+        // --- TOUCH EVENTS ---
+        imageOverlayContainer.addEventListener('touchstart', () => { stopWobble(); });
         imageOverlayContainer.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (isDragging && e.touches.length === 1) {
+            if (e.touches.length === 1 && isDragging) {
                 translateX = e.touches[0].clientX - startX;
                 translateY = e.touches[0].clientY - startY;
-                applyTransform();
-            } else if (e.touches.length === 2) {
-                const t1 = e.touches[0], t2 = e.touches[1];
-                const dx = t1.clientX - t2.clientX;
-                const dy = t1.clientY - t2.clientY;
-                // Zoom
-                const currentDist = Math.sqrt(dx * dx + dy * dy);
-                scale = Math.min(Math.max(0.5, scale * (currentDist / initialPinch.distance)), 5);
-                initialPinch.distance = currentDist;
-                // Rotation
-                const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-                rotation += currentAngle - initialPinch.angle;
-                initialPinch.angle = currentAngle;
                 applyTransform();
             }
         });
         imageOverlayContainer.addEventListener('touchend', () => {
             isDragging = false;
-            startIdleTimer(); // Restart idle timer on release
+            initialPinchDistance = null;
+            startWobble();
         });
     });
 </script>
